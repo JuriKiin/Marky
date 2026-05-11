@@ -6,6 +6,8 @@ This project follows [Keep a Changelog](https://keepachangelog.com/) and uses [S
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-05-11
+
 ## [1.0.0] - 2026-05-11
 
 ### Added
