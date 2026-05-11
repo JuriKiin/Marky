@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data: https:;" />
+    <title>Marky</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-spacer"></div>
+      <div class="filename-wrap">
+        <input
+          id="filename"
+          class="filename"
+          type="text"
+          spellcheck="false"
+          autocomplete="off"
+          value="Untitled.md"
+        />
+        <span id="dirtyDot" class="dirty-dot" aria-hidden="true"></span>
+      </div>
+      <div class="view-toggle" role="group" aria-label="View mode">
+        <button class="icon-btn view-btn" data-view="editor" aria-label="Editor only" title="Editor only (⌘1)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+            <rect x="3" y="4" width="9" height="16" rx="2" fill="currentColor" stroke="none"></rect>
+          </svg>
+        </button>
+        <button class="icon-btn view-btn" data-view="split" aria-label="Split view" title="Split (⌘2)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+            <line x1="12" y1="4" x2="12" y2="20"></line>
+          </svg>
+        </button>
+        <button class="icon-btn view-btn" data-view="preview" aria-label="Preview only" title="Preview only (⌘3)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+            <rect x="12" y="4" width="9" height="16" rx="2" fill="currentColor" stroke="none"></rect>
+          </svg>
+        </button>
+      </div>
+      <button id="helpBtn" class="icon-btn" aria-label="Markdown guide" title="Markdown guide">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5"></path>
+          <line x1="12" y1="16" x2="12" y2="16.5"></line>
+        </svg>
+      </button>
+      <button id="settingsBtn" class="icon-btn" aria-label="Settings" title="Settings">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path>
+        </svg>
+      </button>
+    </header>
+    <div class="app">
+      <section class="pane editor-pane" id="editorPane">
+        <textarea id="editor" spellcheck="true" placeholder="# Start typing markdown…"></textarea>
+      </section>
+      <div class="divider" id="divider"></div>
+      <section class="pane preview-pane" id="previewPane">
+        <article id="preview" class="markdown-body"></article>
+      </section>
+    </div>
+
+    <div id="settingsBackdrop" class="modal-backdrop hidden" aria-hidden="true">
+      <div class="modal" role="dialog" aria-labelledby="settingsTitle">
+        <header class="modal-header">
+          <h2 id="settingsTitle">Settings</h2>
+          <button id="settingsClose" class="icon-btn" aria-label="Close">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 6l12 12M18 6L6 18"></path>
+            </svg>
+          </button>
+        </header>
+        <div class="modal-body">
+          <label class="row">
+            <span>Theme</span>
+            <select id="settingTheme">
+              <option value="marky">Marky</option>
+              <option value="system">System</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+              <option value="custom">Custom…</option>
+            </select>
+          </label>
+
+          <div id="customThemeBlock" class="custom-theme hidden">
+            <div class="custom-theme-header">
+              <span class="custom-theme-label">Color chain</span>
+              <button id="copyCurrentColors" type="button" class="link-btn">Copy current</button>
+            </div>
+            <textarea
+              id="settingCustomChain"
+              class="custom-chain-input"
+              spellcheck="false"
+              autocomplete="off"
+              rows="2"
+              placeholder="#1e1e1e,#252526,#232323,#e6e6e6,#9a9a9a,#4ea1ff,#3a3a3a,#2d2d2d"
+            ></textarea>
+            <div id="customChainError" class="custom-chain-error"></div>
+            <div class="custom-swatches" id="customSwatches">
+              <div class="swatch-item"><span class="swatch" data-slot="0"></span><span class="swatch-label">Background</span></div>
+              <div class="swatch-item"><span class="swatch" data-slot="1"></span><span class="swatch-label">Surface</span></div>
+              <div class="swatch-item"><span class="swatch" data-slot="2"></span><span class="swatch-label">Topbar</span></div>
+              <div class="swatch-item"><span class="swatch" data-slot="3"></span><span class="swatch-label">Foreground</span></div>
+              <div class="swatch-item"><span class="swatch" data-slot="4"></span><span class="swatch-label">Muted</span></div>
+              <div class="swatch-item"><span class="swatch" data-slot="5"></span><span class="swatch-label">Accent</span></div>
+              <div class="swatch-item"><span class="swatch" data-slot="6"></span><span class="swatch-label">Border</span></div>
+              <div class="swatch-item"><span class="swatch" data-slot="7"></span><span class="swatch-label">Code</span></div>
+            </div>
+            <div class="preset-row">
+              <span class="preset-label">Presets:</span>
+              <button type="button" class="preset-chip" data-preset="aubergine">Aubergine</button>
+              <button type="button" class="preset-chip" data-preset="hoth">Hoth</button>
+              <button type="button" class="preset-chip" data-preset="monument">Monument</button>
+              <button type="button" class="preset-chip" data-preset="brink">Brink</button>
+              <button type="button" class="preset-chip" data-preset="nord">Nord</button>
+              <button type="button" class="preset-chip" data-preset="solarized">Solarized</button>
+            </div>
+          </div>
+
+          <label class="row">
+            <span>Editor font size</span>
+            <input id="settingFontSize" type="number" min="10" max="28" step="1" />
+          </label>
+          <label class="row">
+            <span>Preview font size</span>
+            <input id="settingPreviewSize" type="number" min="10" max="28" step="1" />
+          </label>
+          <label class="row checkbox">
+            <input id="settingWordWrap" type="checkbox" />
+            <span>Word wrap in editor</span>
+          </label>
+
+          <div class="settings-footer">
+            <span class="version-tag">Marky <span id="versionNumber">v1.0.0</span></span>
+            <button id="openChangelogBtn" type="button" class="link-btn">View changelog</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="changelogBackdrop" class="modal-backdrop hidden" aria-hidden="true">
+      <div class="modal modal-tall" role="dialog" aria-labelledby="changelogTitle">
+        <header class="modal-header">
+          <h2 id="changelogTitle">Changelog</h2>
+          <button id="changelogClose" class="icon-btn" aria-label="Close">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 6l12 12M18 6L6 18"></path>
+            </svg>
+          </button>
+        </header>
+        <div class="modal-body changelog-body" id="changelogBody"></div>
+      </div>
+    </div>
+
+    <div id="guideBackdrop" class="modal-backdrop hidden" aria-hidden="true">
+      <div class="modal modal-wide" role="dialog" aria-labelledby="guideTitle">
+        <header class="modal-header">
+          <h2 id="guideTitle">Markdown guide</h2>
+          <button id="guideClose" class="icon-btn" aria-label="Close">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 6l12 12M18 6L6 18"></path>
+            </svg>
+          </button>
+        </header>
+        <div class="modal-body guide-body" id="guideBody"></div>
+      </div>
+    </div>
+
+    <script type="module" src="renderer.js"></script>
+  </body>
+</html>

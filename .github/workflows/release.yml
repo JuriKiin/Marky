@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Bump version
+        id: bump
+        run: |
+          NEW_VERSION=$(npm version ${{ github.event.inputs.bump }} --no-git-tag-version)
+          VERSION="${NEW_VERSION#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Bumped to $VERSION"
+
+      - name: Promote Unreleased section in CHANGELOG.md
+        run: node scripts/promote-changelog.mjs "${{ steps.bump.outputs.version }}"
+
+      - name: Create PR and merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="release/v${{ steps.bump.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Clean up stale remote branch from previous failed runs
+          git push origin --delete "$BRANCH" 2>/dev/null || true
+
+          git checkout -b "$BRANCH"
+          git add package.json package-lock.json CHANGELOG.md
+          git commit -m "Release v${{ steps.bump.outputs.version }}"
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "Release v${{ steps.bump.outputs.version }}" \
+            --body "Automated version bump and changelog update for v${{ steps.bump.outputs.version }}." \
+            --base main \
+            --head "$BRANCH"
+          gh pr merge "$BRANCH" --squash --admin --delete-branch
+
+  build-and-release:
+    needs: bump-version
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Extract release notes
+        run: |
+          node scripts/extract-release-notes.mjs "${{ needs.bump-version.outputs.version }}" > release-notes.md
+          echo "---" >> release-notes.md
+          echo "_Released by GitHub Actions._" >> release-notes.md
+
+      - name: Build and publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --mac --publish always
+
+      - name: Attach release notes and publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release edit "v${{ needs.bump-version.outputs.version }}" \
+            --notes-file release-notes.md \
+            --draft=false \
+            --latest
+
+      - name: Summary
+        run: |
+          echo "## Release v${{ needs.bump-version.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Published to [GitHub Releases](https://github.com/${{ github.repository }}/releases/tag/v${{ needs.bump-version.outputs.version }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Notes" >> "$GITHUB_STEP_SUMMARY"
+          cat release-notes.md >> "$GITHUB_STEP_SUMMARY"

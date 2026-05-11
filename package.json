@@ -1,0 +1,80 @@
+{
+  "name": "marky",
+  "productName": "Marky",
+  "version": "1.0.0",
+  "description": "A simple Markdown editor and previewer for macOS",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build-icon": "bash build/make-icns.sh",
+    "package": "electron-builder --mac --publish never",
+    "release": "electron-builder --mac --publish always"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^26.8.1"
+  },
+  "dependencies": {
+    "dompurify": "^3.2.0",
+    "marked": "^14.1.3"
+  },
+  "build": {
+    "appId": "com.marky.app",
+    "productName": "Marky",
+    "copyright": "Copyright © 2026",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "CHANGELOG.md",
+      "package.json",
+      "!**/.DS_Store"
+    ],
+    "extraMetadata": {
+      "main": "main.js"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64", "x64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["arm64", "x64"]
+        }
+      ],
+      "fileAssociations": [
+        {
+          "ext": ["md", "markdown", "mdown", "mkd"],
+          "name": "Markdown Document",
+          "role": "Editor",
+          "rank": "Owner"
+        }
+      ],
+      "extendInfo": {
+        "UTExportedTypeDeclarations": [
+          {
+            "UTTypeIdentifier": "net.daringfireball.markdown",
+            "UTTypeDescription": "Markdown Document",
+            "UTTypeConformsTo": ["public.plain-text"],
+            "UTTypeTagSpecification": {
+              "public.filename-extension": ["md", "markdown", "mdown", "mkd"],
+              "public.mime-type": ["text/markdown"]
+            }
+          }
+        ]
+      }
+    },
+    "publish": {
+      "provider": "github"
+    }
+  }
+}
