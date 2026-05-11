@@ -1,7 +1,7 @@
 {
   "name": "marky",
   "productName": "Marky",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A simple Markdown editor and previewer for macOS",
   "main": "main.js",
   "scripts": {
@@ -44,16 +44,27 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["arm64", "x64"]
+          "arch": [
+            "arm64",
+            "x64"
+          ]
         },
         {
           "target": "zip",
-          "arch": ["arm64", "x64"]
+          "arch": [
+            "arm64",
+            "x64"
+          ]
         }
       ],
       "fileAssociations": [
         {
-          "ext": ["md", "markdown", "mdown", "mkd"],
+          "ext": [
+            "md",
+            "markdown",
+            "mdown",
+            "mkd"
+          ],
           "name": "Markdown Document",
           "role": "Editor",
           "rank": "Owner"
@@ -64,10 +75,19 @@
           {
             "UTTypeIdentifier": "net.daringfireball.markdown",
             "UTTypeDescription": "Markdown Document",
-            "UTTypeConformsTo": ["public.plain-text"],
+            "UTTypeConformsTo": [
+              "public.plain-text"
+            ],
             "UTTypeTagSpecification": {
-              "public.filename-extension": ["md", "markdown", "mdown", "mkd"],
-              "public.mime-type": ["text/markdown"]
+              "public.filename-extension": [
+                "md",
+                "markdown",
+                "mdown",
+                "mkd"
+              ],
+              "public.mime-type": [
+                "text/markdown"
+              ]
             }
           }
         ]
