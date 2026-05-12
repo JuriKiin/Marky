@@ -6,6 +6,8 @@ A simple, offline-first Markdown editor for macOS. Built with Electron.
   <img src="build/icon.png" alt="Marky logo" width="128" />
 </p>
 
+<img width="1312" height="912" alt="Screenshot 2026-05-12 at 10 13 56 AM" src="https://github.com/user-attachments/assets/38495572-d7a7-498a-9270-2991a57e588e" />
+
 ## Features
 
 - Split editor / live preview with GitHub-flavored Markdown
