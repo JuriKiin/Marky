@@ -203,6 +203,34 @@ function buildMenu() {
       ],
     },
     {
+      label: 'Slides',
+      submenu: [
+        {
+          label: 'Present',
+          accelerator: 'CmdOrCtrl+Return',
+          click: () => mainWindow?.webContents.send('open-present'),
+        },
+        { type: 'separator' },
+        {
+          label: 'Insert Default Slide',
+          accelerator: 'CmdOrCtrl+Shift+N',
+          click: () => mainWindow?.webContents.send('insert-slide', 'default'),
+        },
+        {
+          label: 'Insert Slide With Layout',
+          submenu: [
+            { label: 'Title', click: () => mainWindow?.webContents.send('insert-slide', 'title') },
+            { label: 'Section divider', click: () => mainWindow?.webContents.send('insert-slide', 'section') },
+            { label: 'Bullets', click: () => mainWindow?.webContents.send('insert-slide', 'bullets') },
+            { label: 'Quote', click: () => mainWindow?.webContents.send('insert-slide', 'quote') },
+            { label: 'Image', click: () => mainWindow?.webContents.send('insert-slide', 'image') },
+            { label: 'Code', click: () => mainWindow?.webContents.send('insert-slide', 'code') },
+            { label: 'Closing', click: () => mainWindow?.webContents.send('insert-slide', 'closing') },
+          ],
+        },
+      ],
+    },
+    {
       label: 'Window',
       submenu: [{ role: 'minimize' }, { role: 'zoom' }, { role: 'close' }],
     },

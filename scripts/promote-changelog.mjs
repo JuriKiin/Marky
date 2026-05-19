@@ -26,7 +26,8 @@ const end = nextIdx === -1 ? md.length : afterHeader + nextIdx;
 const unreleasedBody = md.slice(afterHeader, end).replace(/^\s*\n/, '').replace(/\s+$/, '');
 const date = new Date().toISOString().slice(0, 10);
 
-const replacement = `## [Unreleased]\n\n## [${version}] - ${date}\n\n${unreleasedBody}\n`;
+const body = unreleasedBody.length > 0 ? unreleasedBody : '_No notable changes._';
+const replacement = `## [Unreleased]\n\n## [${version}] - ${date}\n\n${body}\n`;
 
 const updated = md.slice(0, start) + replacement + md.slice(end);
 fs.writeFileSync(file, updated.replace(/\n{3,}/g, '\n\n'));
