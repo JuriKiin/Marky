@@ -6,6 +6,8 @@ This project follows [Keep a Changelog](https://keepachangelog.com/) and uses [S
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-05-19
+
 ### Added
 - Presentation mode — split a document into slides with `---`, optional YAML frontmatter for `header`, `footer`, and `paginate`. Open with the Present toolbar button or ⌘⏎; navigate with arrow keys, exit with Esc.
 - Slide layouts — per-slide `<!-- layout: name -->` directive switches the slide between distinct visual styles: Title (hero with accent rule), Section divider (full-bleed accent background), Quote (centered italic with attribution), Image (image-focused with caption), Code (large code block), and Default.

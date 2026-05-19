@@ -1,7 +1,7 @@
 {
   "name": "marky",
   "productName": "Marky",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "A simple Markdown editor and previewer for macOS",
   "main": "main.js",
   "scripts": {
