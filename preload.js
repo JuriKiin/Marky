@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld('marky', {
   onSetView: (callback) =>
     ipcRenderer.on('set-view', (_e, view) => callback(view)),
   onOpenGuide: (callback) => ipcRenderer.on('open-guide', () => callback()),
+  onOpenPresent: (callback) => ipcRenderer.on('open-present', () => callback()),
+  onInsertSlide: (callback) => ipcRenderer.on('insert-slide', (_e, id) => callback(id)),
   saveContent: (payload) => ipcRenderer.invoke('save-content', payload),
   markDirty: (isDirty) => ipcRenderer.invoke('mark-dirty', isDirty),
   renameFile: (newName) => ipcRenderer.invoke('rename-file', newName),

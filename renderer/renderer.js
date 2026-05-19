@@ -1,5 +1,24 @@
 import { marked } from '../node_modules/marked/lib/marked.esm.js';
 import DOMPurify from '../node_modules/dompurify/dist/purify.es.mjs';
+import {
+  KNOWN_LAYOUTS,
+  KNOWN_DECK_THEMES,
+  SLIDE_TEMPLATES,
+  THUMB_SVGS,
+  splitSlides,
+  extractDirectives,
+  safeColor,
+  safeImageUrl,
+} from './slides.js';
+import {
+  CUSTOM_SLOT_VARS,
+  THEME_PRESETS,
+  parseHex,
+  parseChain,
+  cssColorToHex,
+} from './themes.js';
+import { parseChangelog } from './changelog.js';
+import { GUIDE_SECTIONS } from './guide.js';
 
 const editor = document.getElementById('editor');
 const preview = document.getElementById('preview');
@@ -30,6 +49,15 @@ const openChangelogBtn = document.getElementById('openChangelogBtn');
 const changelogBackdrop = document.getElementById('changelogBackdrop');
 const changelogClose = document.getElementById('changelogClose');
 const changelogBody = document.getElementById('changelogBody');
+const addSlideBtn = document.getElementById('addSlideBtn');
+const templatesPopover = document.getElementById('templatesPopover');
+const templatesList = document.getElementById('templatesList');
+const presentBtn = document.getElementById('presentBtn');
+const presentOverlay = document.getElementById('presentOverlay');
+const slideCanvas = document.getElementById('slideCanvas');
+const presentHeader = document.getElementById('presentHeader');
+const presentFooter = document.getElementById('presentFooter');
+const presentPage = document.getElementById('presentPage');
 
 let lastSavedContent = '';
 let isDirty = false;
@@ -37,6 +65,13 @@ let currentFilePath = null;
 let currentDisplayName = 'Untitled.md';
 
 marked.setOptions({ gfm: true, breaks: false });
+
+function escapeHtml(s) {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
 
 function render() {
   const raw = marked.parse(editor.value);
@@ -186,74 +221,9 @@ document.addEventListener('keydown', (e) => {
     if (!settingsBackdrop.classList.contains('hidden')) closeSettings();
     if (!guideBackdrop.classList.contains('hidden')) closeGuide();
     if (!changelogBackdrop.classList.contains('hidden')) closeChangelog();
+    if (!templatesPopover.classList.contains('hidden')) closeTemplatesPopover();
   }
 });
-
-const GUIDE_SECTIONS = [
-  {
-    title: 'Headings',
-    syntax: '# Heading 1\n## Heading 2\n### Heading 3\n#### Heading 4',
-  },
-  {
-    title: 'Emphasis',
-    syntax: '**bold text**\n*italic text*\n***bold and italic***\n~~strikethrough~~',
-  },
-  {
-    title: 'Inline code',
-    syntax: 'Use `backticks` for inline code.',
-  },
-  {
-    title: 'Links',
-    syntax: '[Link text](https://example.com)\n\n<https://example.com>',
-  },
-  {
-    title: 'Images',
-    syntax: '![Alt text](https://placehold.co/120x60)',
-  },
-  {
-    title: 'Unordered list',
-    syntax: '- First item\n- Second item\n  - Nested item\n  - Another nested\n- Third item',
-  },
-  {
-    title: 'Ordered list',
-    syntax: '1. First\n2. Second\n3. Third',
-  },
-  {
-    title: 'Task list',
-    syntax: '- [x] Done\n- [ ] Not done\n- [ ] Another task',
-  },
-  {
-    title: 'Blockquote',
-    syntax: '> A quoted line.\n> Continues here.\n>\n> > Nested quote.',
-  },
-  {
-    title: 'Code block',
-    syntax: '```js\nfunction hello() {\n  console.log("hi");\n}\n```',
-  },
-  {
-    title: 'Table',
-    syntax: '| Name  | Score |\n| ----- | ----: |\n| Alice |   42  |\n| Bob   |   17  |',
-  },
-  {
-    title: 'Horizontal rule',
-    syntax: 'Above\n\n---\n\nBelow',
-  },
-  {
-    title: 'Line break',
-    syntax: 'End a line with two spaces  \nfor a hard break.',
-  },
-  {
-    title: 'Escaping',
-    syntax: 'Use a backslash to escape: \\*not italic\\*',
-  },
-];
-
-function escapeHtml(s) {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
 
 function openChangelog() {
   changelogBackdrop.classList.remove('hidden');
@@ -266,44 +236,6 @@ changelogClose.addEventListener('click', closeChangelog);
 changelogBackdrop.addEventListener('click', (e) => {
   if (e.target === changelogBackdrop) closeChangelog();
 });
-
-function parseChangelog(md) {
-  const lines = md.split('\n');
-  const entries = [];
-  let current = null;
-  let currentSection = null;
-
-  for (const line of lines) {
-    const versionMatch = line.match(/^##\s+\[([^\]]+)\]\s*(?:-\s*(.+?))?\s*$/);
-    if (versionMatch) {
-      if (current) entries.push(current);
-      current = {
-        version: versionMatch[1],
-        date: (versionMatch[2] || '').trim(),
-        sections: {},
-      };
-      currentSection = null;
-      continue;
-    }
-    const sectionMatch = line.match(/^###\s+(.+?)\s*$/);
-    if (sectionMatch && current) {
-      currentSection = sectionMatch[1].trim();
-      current.sections[currentSection] = current.sections[currentSection] || [];
-      continue;
-    }
-    const itemMatch = line.match(/^\s*[-*]\s+(.+?)\s*$/);
-    if (itemMatch && current && currentSection) {
-      current.sections[currentSection].push(itemMatch[1]);
-    }
-  }
-  if (current) entries.push(current);
-
-  return entries.filter((e) => {
-    const isUnreleased = e.version.toLowerCase() === 'unreleased';
-    const hasItems = Object.values(e.sections).some((arr) => arr.length > 0);
-    return !isUnreleased || hasItems;
-  });
-}
 
 async function renderChangelog() {
   const md = (await window.marky?.readChangelog?.()) || '';
@@ -328,13 +260,14 @@ async function renderChangelog() {
     const isUnreleased = entry.version.toLowerCase() === 'unreleased';
     const isCurrent = entry.version === currentVersion;
     const versionLabel = isUnreleased ? 'Unreleased' : `v${entry.version}`;
+    const body = groups || '<p class="changelog-empty">No notable changes.</p>';
     return `
       <section class="changelog-entry">
         <div class="changelog-version-row">
           <span class="changelog-version${isCurrent ? ' current' : ''}">${escapeHtml(versionLabel)}</span>
           <span class="changelog-date">${escapeHtml(entry.date)}</span>
         </div>
-        ${groups}
+        ${body}
       </section>
     `;
   }).join('');
@@ -375,26 +308,6 @@ const defaultSettings = {
   customChain: '',
 };
 
-const CUSTOM_SLOT_VARS = [
-  '--bg',
-  '--bg-elev',
-  '--topbar-bg',
-  '--fg',
-  '--fg-muted',
-  '--accent',
-  '--border',
-  '--code-bg',
-];
-
-const THEME_PRESETS = {
-  aubergine: '#3F0E40,#350D36,#522653,#F8F8F8,#BCABBC,#1264A3,#522653,#2C0B2D',
-  hoth:      '#F8F8F8,#FFFFFF,#FFFFFF,#1D1C1D,#696969,#1264A3,#E1E1E1,#F0F0F0',
-  monument:  '#0F1B2D,#15243B,#0B1626,#E8EAF1,#8A93A6,#37C8AB,#1F2D44,#142036',
-  brink:     '#0E2439,#0A1C2E,#081625,#E6EAF0,#7E8FA3,#FFB938,#1A3552,#0F2236',
-  nord:      '#2E3440,#3B4252,#242933,#ECEFF4,#A6ADBB,#88C0D0,#434C5E,#3B4252',
-  solarized: '#002B36,#073642,#001E27,#EEE8D5,#93A1A1,#B58900,#0E4651,#073642',
-};
-
 function loadSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
@@ -406,35 +319,6 @@ function loadSettings() {
 
 function saveSettings(s) {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
-}
-
-function parseHex(token) {
-  let h = token.trim().replace(/^#/, '');
-  if (!/^[0-9a-fA-F]+$/.test(h)) return null;
-  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
-  if (h.length !== 6) return null;
-  return `#${h.toLowerCase()}`;
-}
-
-function parseChain(raw) {
-  if (!raw) return { ok: false, colors: [], error: '' };
-  const tokens = raw.split(/[,\s]+/).filter(Boolean);
-  if (tokens.length !== CUSTOM_SLOT_VARS.length) {
-    return {
-      ok: false,
-      colors: [],
-      error: `Need exactly ${CUSTOM_SLOT_VARS.length} colors (got ${tokens.length}).`,
-    };
-  }
-  const colors = [];
-  for (let i = 0; i < tokens.length; i++) {
-    const parsed = parseHex(tokens[i]);
-    if (!parsed) {
-      return { ok: false, colors: [], error: `Invalid hex at position ${i + 1}: "${tokens[i]}"` };
-    }
-    colors.push(parsed);
-  }
-  return { ok: true, colors, error: '' };
 }
 
 function clearCustomVars() {
@@ -541,17 +425,6 @@ copyCurrentBtn.addEventListener('click', async () => {
   saveSettings(settings);
 });
 
-function cssColorToHex(value) {
-  if (!value) return null;
-  if (value.startsWith('#')) return parseHex(value);
-  const m = value.match(/rgba?\(([^)]+)\)/);
-  if (!m) return null;
-  const parts = m[1].split(',').map((p) => parseFloat(p.trim()));
-  if (parts.length < 3) return null;
-  const toHex = (n) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
-  return `#${toHex(parts[0])}${toHex(parts[1])}${toHex(parts[2])}`;
-}
-
 let dragging = false;
 divider.addEventListener('mousedown', (e) => {
   dragging = true;
@@ -579,6 +452,279 @@ window.marky?.requestFileState().then((state) => {
   }
 });
 
-editor.value = '# Welcome to Marky\n\nStart typing **Markdown** on the left, see it rendered on the right.\n\n- Lists work\n- `inline code` too\n- [Links open externally](https://example.com)\n\n```js\nconsole.log("Hello, Marky!");\n```\n';
+function renderTemplateList() {
+  templatesList.innerHTML = SLIDE_TEMPLATES.map((t) => `
+    <li>
+      <button type="button" class="template-item" data-template-id="${t.id}">
+        <svg class="template-thumb" viewBox="0 0 24 20" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">${THUMB_SVGS[t.thumb] || THUMB_SVGS.default}</svg>
+        <span class="template-label">${t.label}</span>
+        ${t.shortcut ? `<span class="template-shortcut">${t.shortcut}</span>` : ''}
+      </button>
+    </li>
+  `).join('');
+}
+renderTemplateList();
+
+function insertSlide(idOrTemplate) {
+  const template = typeof idOrTemplate === 'string'
+    ? SLIDE_TEMPLATES.find((t) => t.id === idOrTemplate)
+    : idOrTemplate;
+  if (!template) return;
+
+  const content = editor.value;
+  const trimmedEnd = content.replace(/\s+$/, '');
+  const separator = trimmedEnd.length === 0 ? '' : '\n\n---\n\n';
+  const insertStart = trimmedEnd.length + separator.length;
+  editor.value = trimmedEnd + separator + template.md + '\n';
+
+  editor.dispatchEvent(new Event('input'));
+  editor.focus();
+  editor.setSelectionRange(insertStart, insertStart);
+
+  const before = editor.value.slice(0, insertStart);
+  const lineCount = (before.match(/\n/g) || []).length;
+  const lineHeight = parseFloat(getComputedStyle(editor).lineHeight) || 22;
+  editor.scrollTop = Math.max(0, lineCount * lineHeight - editor.clientHeight / 2);
+}
+
+function positionTemplatesPopover() {
+  const rect = addSlideBtn.getBoundingClientRect();
+  templatesPopover.style.top = `${rect.bottom + 6}px`;
+  templatesPopover.style.right = `${Math.max(8, window.innerWidth - rect.right)}px`;
+}
+
+function openTemplatesPopover() {
+  positionTemplatesPopover();
+  templatesPopover.classList.remove('hidden');
+}
+function closeTemplatesPopover() {
+  templatesPopover.classList.add('hidden');
+}
+
+addSlideBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (templatesPopover.classList.contains('hidden')) openTemplatesPopover();
+  else closeTemplatesPopover();
+});
+
+templatesList.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-template-id]');
+  if (!btn) return;
+  insertSlide(btn.dataset.templateId);
+  closeTemplatesPopover();
+});
+
+document.addEventListener('click', (e) => {
+  if (templatesPopover.classList.contains('hidden')) return;
+  if (templatesPopover.contains(e.target) || addSlideBtn.contains(e.target)) return;
+  closeTemplatesPopover();
+});
+
+window.addEventListener('resize', () => {
+  if (!templatesPopover.classList.contains('hidden')) positionTemplatesPopover();
+});
+
+window.marky?.onInsertSlide?.((id) => insertSlide(id));
+
+const presentation = {
+  slides: [],
+  config: {},
+  index: 0,
+  savedTheme: null,
+};
+
+function renderSlide() {
+  const md = presentation.slides[presentation.index] || '';
+  const { directives, body } = extractDirectives(md);
+  const layout = KNOWN_LAYOUTS.includes(directives.layout) ? directives.layout : 'default';
+  const html = DOMPurify.sanitize(marked.parse(body));
+
+  slideCanvas.className = `slide markdown-body slide-layout-${layout}`;
+  slideCanvas.removeAttribute('style');
+
+  const styles = [];
+  const bg = safeColor(directives.bg);
+  if (bg) styles.push(`background-color: ${bg}`);
+
+  const accent = safeColor(directives.accent);
+  if (accent) styles.push(`--accent: ${accent}`);
+
+  const bgImage = safeImageUrl(directives['bg-image']);
+  if (bgImage) {
+    styles.push(`--slide-bg-image: url("${bgImage}")`);
+    slideCanvas.classList.add('has-bg-image');
+  }
+
+  if (directives.invert) slideCanvas.classList.add('invert');
+
+  if (styles.length) slideCanvas.setAttribute('style', styles.join('; '));
+
+  slideCanvas.innerHTML = html;
+  slideCanvas.querySelectorAll('a').forEach((a) => {
+    a.setAttribute('target', '_blank');
+    a.setAttribute('rel', 'noopener noreferrer');
+  });
+
+  presentHeader.textContent = presentation.config.header || '';
+  presentFooter.textContent = presentation.config.footer || '';
+  if (presentation.config.paginate) {
+    presentPage.textContent = `${presentation.index + 1} / ${presentation.slides.length}`;
+  } else {
+    presentPage.textContent = '';
+  }
+}
+
+function openPresent() {
+  const { config, slides } = splitSlides(editor.value);
+  if (slides.length === 0) return;
+  presentation.config = config;
+  presentation.slides = slides;
+  presentation.index = 0;
+
+  if (typeof config.theme === 'string' && KNOWN_DECK_THEMES.includes(config.theme)) {
+    presentation.savedTheme = document.documentElement.getAttribute('data-theme');
+    document.documentElement.setAttribute('data-theme', config.theme);
+  } else {
+    presentation.savedTheme = null;
+  }
+
+  renderSlide();
+  presentOverlay.classList.remove('hidden');
+  presentOverlay.setAttribute('aria-hidden', 'false');
+  document.documentElement.requestFullscreen?.().catch(() => {});
+}
+
+function closePresent() {
+  if (presentOverlay.classList.contains('hidden')) return;
+  if (presentation.savedTheme !== null) {
+    if (presentation.savedTheme) {
+      document.documentElement.setAttribute('data-theme', presentation.savedTheme);
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    presentation.savedTheme = null;
+  }
+  presentOverlay.classList.add('hidden');
+  presentOverlay.setAttribute('aria-hidden', 'true');
+  if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+}
+
+function nextSlide() {
+  if (presentation.index < presentation.slides.length - 1) {
+    presentation.index++;
+    renderSlide();
+  }
+}
+function prevSlide() {
+  if (presentation.index > 0) {
+    presentation.index--;
+    renderSlide();
+  }
+}
+
+presentBtn.addEventListener('click', openPresent);
+window.marky?.onOpenPresent?.(openPresent);
+
+slideCanvas.addEventListener('click', nextSlide);
+
+document.addEventListener('keydown', (e) => {
+  if (presentOverlay.classList.contains('hidden')) return;
+  if (e.key === 'Escape') { closePresent(); return; }
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown' || e.key === 'Enter') {
+    e.preventDefault();
+    nextSlide();
+  } else if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'Backspace') {
+    e.preventDefault();
+    prevSlide();
+  } else if (e.key === 'Home') {
+    e.preventDefault();
+    presentation.index = 0;
+    renderSlide();
+  } else if (e.key === 'End') {
+    e.preventDefault();
+    presentation.index = presentation.slides.length - 1;
+    renderSlide();
+  }
+});
+
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && !presentOverlay.classList.contains('hidden')) {
+    closePresent();
+  }
+});
+
+editor.value = `---
+header: Marky Demo
+footer: 2026
+paginate: true
+---
+
+<!-- layout: title -->
+# Welcome to Marky
+
+## Markdown slides, beautifully styled
+
+---
+
+<!-- layout: section -->
+# Layouts
+
+---
+
+# Default layout
+
+Top-aligned, left-aligned, regular typography. Great for body content with mixed elements.
+
+- Lists
+- \`inline code\`
+- [links](https://example.com)
+
+---
+
+<!-- layout: quote -->
+> "Markdown is the friend of the writer."
+>
+> — Anonymous
+
+---
+
+<!-- layout: code -->
+# Code layout
+
+\`\`\`js
+function hello() {
+  console.log("Marky!");
+}
+\`\`\`
+
+---
+
+<!-- bg: accent -->
+<!-- accent: #ffffff -->
+# Per-slide background
+
+Use theme tokens (\`accent\`, \`fg\`, \`muted\`…) or any hex/rgb color in directives.
+
+---
+
+<!-- invert -->
+# Inverted slide
+
+Flip foreground and background with \`<!-- invert -->\`. Great for emphasis.
+
+---
+
+<!-- bg-image: https://images.unsplash.com/photo-1506905925346-21bda4d32df4 -->
+# Background image
+
+Use \`<!-- bg-image: url -->\` for hero slides. An overlay keeps text readable.
+
+---
+
+<!-- layout: title -->
+# Thanks!
+
+## Press Esc to exit
+`;
 lastSavedContent = editor.value;
 render();

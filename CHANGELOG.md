@@ -6,7 +6,21 @@ This project follows [Keep a Changelog](https://keepachangelog.com/) and uses [S
 
 ## [Unreleased]
 
+### Added
+- Presentation mode — split a document into slides with `---`, optional YAML frontmatter for `header`, `footer`, and `paginate`. Open with the Present toolbar button or ⌘⏎; navigate with arrow keys, exit with Esc.
+- Slide layouts — per-slide `<!-- layout: name -->` directive switches the slide between distinct visual styles: Title (hero with accent rule), Section divider (full-bleed accent background), Quote (centered italic with attribution), Image (image-focused with caption), Code (large code block), and Default.
+- Slide templates picker — `+` toolbar button opens a popover with thumbnail previews of each layout. Picking one inserts the layout directive plus starter content at the end of the document with proper `---` separators.
+- Top-level **Slides** menu — Present, Insert Default Slide (⌘⇧N), and Insert Slide With Layout submenu.
+- Per-slide styling directives — `<!-- bg: color -->`, `<!-- accent: color -->`, `<!-- invert -->`, and `<!-- bg-image: url -->` override the look of an individual slide. Colors and URLs are validated to keep slide HTML safe.
+- Slide directive colors accept theme tokens (`accent`, `fg`, `bg`, `muted`, `surface`, `border`, `code`) in addition to hex/rgb/named colors, so per-slide overrides stay in sync with the active theme.
+- Deck-level `theme:` frontmatter pins a presentation to a specific app theme (marky, light, dark, system) for the duration of Present mode; the previous theme is restored on exit.
+
+### Changed
+- Refactored the renderer into focused ES modules: `slides.js` (slide parsing, templates, directive sanitizers), `themes.js` (custom color-chain parsing and presets), `changelog.js` (CHANGELOG.md parser), and `guide.js` (markdown reference data). `renderer.js` is now focused on DOM and IPC wiring.
+
 ## [1.0.1] - 2026-05-11
+
+_No notable changes._
 
 ## [1.0.0] - 2026-05-11
 
